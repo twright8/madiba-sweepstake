@@ -1,0 +1,214 @@
+/* ============================================================
+   styles.css — "Madiba Magic" South African poster system
+   Fonts (Anton + Hanken Grotesk) loaded via Google Fonts in index.html
+   ============================================================ */
+
+:root {
+  --green:#007a4d;
+  --gold:#ffb81c;
+  --red:#e1392d;
+  --blue:#0050b3;
+  --navy:#002a6e;
+  --ink:#161310;
+  --paper:#fdf3df;
+  --paper2:#f6e7c5;
+  --white:#ffffff;
+  --line:#161310;
+  --shadow: 6px 6px 0 var(--ink);
+  --shadow-sm: 4px 4px 0 var(--ink);
+  --r:18px;
+  --maxw:1040px;
+  --display:'Anton', system-ui, sans-serif;
+  --body:'Hanken Grotesk', system-ui, sans-serif;
+}
+
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; }
+body {
+  font-family:var(--body);
+  color:var(--ink);
+  background:var(--paper);
+  background-image:
+    radial-gradient(var(--paper2) 1.2px, transparent 1.2px);
+  background-size:18px 18px;
+  -webkit-font-smoothing:antialiased;
+  font-size:17px;
+  line-height:1.4;
+}
+button { font-family:var(--body); cursor:pointer; }
+h1,h2,h3 { font-family:var(--display); font-weight:400; letter-spacing:.01em; line-height:1.04; margin:0; text-transform:uppercase; }
+a { color:var(--blue); }
+
+/* ---------- decorative Ndebele / flag strips ---------- */
+.flagband {
+  display:flex; height:8px; width:100%;
+}
+.flagband > i { flex:1; }
+.flagband > i:nth-child(1){ background:var(--green);}
+.flagband > i:nth-child(2){ background:var(--gold);}
+.flagband > i:nth-child(3){ background:var(--red);}
+.flagband > i:nth-child(4){ background:var(--blue);}
+.flagband > i:nth-child(5){ background:var(--ink);}
+.flagband > i:nth-child(6){ background:var(--white);}
+
+.zig {
+  height:20px;
+  background-color:var(--green);
+  background-image:
+    linear-gradient(135deg, var(--gold) 25%, transparent 25%, transparent 75%, var(--red) 75%),
+    linear-gradient(135deg, var(--blue) 25%, transparent 25%, transparent 75%, var(--gold) 75%);
+  background-size:28px 28px;
+  background-position:0 0, 14px 14px;
+  border-top:3px solid var(--ink);
+  border-bottom:3px solid var(--ink);
+}
+
+/* ---------- layout ---------- */
+.app { min-height:100vh; padding-bottom:96px; }
+.wrap { max-width:var(--maxw); margin:0 auto; padding:0 16px; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position:sticky; top:0; z-index:40;
+  background:var(--green);
+  border-bottom:4px solid var(--ink);
+}
+.topbar .row {
+  max-width:var(--maxw); margin:0 auto; padding:12px 16px;
+  display:flex; align-items:center; gap:14px;
+}
+.brand { display:flex; align-items:center; gap:12px; min-width:0; }
+.brand .mark { width:40px; height:28px; flex:0 0 auto; box-shadow:2px 2px 0 rgba(0,0,0,.35); }
+.brand h1 { color:var(--white); font-size:19px; line-height:1; white-space:nowrap; }
+.brand .sub { color:var(--gold); font-weight:800; font-size:11px; letter-spacing:.18em; text-transform:uppercase; }
+.pot-pill {
+  margin-left:auto; background:var(--gold); color:var(--ink);
+  border:3px solid var(--ink); border-radius:999px; padding:6px 14px;
+  font-weight:900; box-shadow:var(--shadow-sm); white-space:nowrap;
+}
+.pot-pill small { display:block; font-size:9px; letter-spacing:.16em; text-transform:uppercase; opacity:.7; line-height:1; }
+.pot-pill b { font-size:18px; font-family:var(--display); }
+
+/* ---------- bottom nav ---------- */
+.nav {
+  position:fixed; left:0; right:0; bottom:0; z-index:50;
+  background:var(--ink);
+  border-top:4px solid var(--gold);
+  display:flex; justify-content:center;
+}
+.nav .inner { display:flex; width:100%; max-width:var(--maxw); }
+.nav button {
+  flex:1; background:none; border:0; color:#b7ad97;
+  padding:9px 4px 10px; display:flex; flex-direction:column; align-items:center; gap:3px;
+  font-weight:800; font-size:10.5px; letter-spacing:.04em; text-transform:uppercase;
+  border-top:4px solid transparent; margin-top:-4px;
+}
+.nav button .ic { font-size:21px; line-height:1; }
+.nav button.active { color:var(--white); border-top-color:var(--gold); background:rgba(255,184,28,.1); }
+
+/* ---------- cards ---------- */
+.card {
+  background:var(--white); border:3px solid var(--ink); border-radius:var(--r);
+  box-shadow:var(--shadow); overflow:hidden;
+}
+.card.flat { box-shadow:var(--shadow-sm); }
+.card-pad { padding:18px; }
+.section-title {
+  font-family:var(--display); font-size:13px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink); display:flex; align-items:center; gap:8px; white-space:nowrap;
+}
+.section-title .dot { width:12px; height:12px; background:var(--red); border:2px solid var(--ink); border-radius:50%; }
+
+/* ---------- buttons ---------- */
+.btn {
+  font-family:var(--body); font-weight:900; font-size:16px;
+  border:3px solid var(--ink); border-radius:14px; padding:13px 20px;
+  background:var(--white); color:var(--ink); box-shadow:var(--shadow-sm);
+  display:inline-flex; align-items:center; justify-content:center; gap:9px;
+  transition:transform .06s ease, box-shadow .06s ease; text-transform:uppercase; letter-spacing:.02em;
+}
+.btn:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink); }
+.btn:disabled { opacity:.45; box-shadow:none; cursor:not-allowed; transform:none; }
+.btn.green { background:var(--green); color:#fff; }
+.btn.gold  { background:var(--gold); }
+.btn.red   { background:var(--red); color:#fff; }
+.btn.blue  { background:var(--blue); color:#fff; }
+.btn.big   { font-size:21px; padding:18px 28px; box-shadow:var(--shadow); width:100%; }
+.btn.ghost { background:transparent; box-shadow:none; border-style:dashed; }
+.btn.sm    { font-size:12px; padding:7px 12px; border-radius:10px; box-shadow:2px 2px 0 var(--ink); }
+
+/* ---------- flag chip / team rows ---------- */
+.flag { font-size:1.45em; line-height:1; filter:drop-shadow(1px 1px 0 rgba(0,0,0,.25)); }
+.teamline { display:flex; align-items:center; gap:10px; min-width:0; }
+.teamline .nm { font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fav-star { color:var(--gold); -webkit-text-stroke:1.4px var(--ink); font-size:.95em; }
+
+.pill {
+  display:inline-flex; align-items:center; gap:6px; font-weight:800; font-size:12px;
+  border:2px solid var(--ink); border-radius:999px; padding:3px 10px; background:var(--white);
+  text-transform:uppercase; letter-spacing:.04em; white-space:nowrap;
+}
+.pill.green{ background:var(--green); color:#fff;}
+.pill.gold{ background:var(--gold);}
+.pill.red{ background:var(--red); color:#fff;}
+.pill.grey{ background:#e7ddc6;}
+
+/* ---------- person avatar ---------- */
+.ava {
+  width:42px; height:42px; border-radius:12px; border:3px solid var(--ink);
+  display:grid; place-items:center; font-size:21px; flex:0 0 auto; background:var(--gold);
+  box-shadow:2px 2px 0 var(--ink);
+}
+.ava.sm{ width:32px; height:32px; font-size:16px; border-width:2px; border-radius:9px; box-shadow:1px 1px 0 var(--ink);}
+
+/* ---------- misc ---------- */
+.muted { color:#7a7059; }
+.grid { display:grid; gap:14px; }
+.row { display:flex; align-items:center; gap:12px; }
+.between { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.between > h1 { white-space:nowrap; }
+.tag-stage {
+  font-family:var(--display); background:var(--ink); color:var(--gold);
+  font-size:11px; letter-spacing:.12em; padding:3px 9px; border-radius:6px; text-transform:uppercase;
+}
+.scorebox {
+  width:38px; height:42px; border:3px solid var(--ink); border-radius:9px; text-align:center;
+  font-family:var(--display); font-size:22px; background:var(--paper); color:var(--ink);
+}
+.scorebox:focus { outline:none; background:var(--gold); }
+
+.hero-num { font-family:var(--display); font-size:clamp(46px,12vw,96px); line-height:.85; }
+.kicker { font-weight:900; letter-spacing:.18em; text-transform:uppercase; font-size:12px; color:var(--red); }
+
+.confetti-cell { position:fixed; inset:0; pointer-events:none; z-index:60; overflow:hidden; }
+
+@keyframes pop { 0%{ transform:scale(.6); opacity:0;} 60%{ transform:scale(1.08);} 100%{ transform:scale(1); opacity:1;} }
+@keyframes slidein { from{ transform:translateY(14px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
+@keyframes spinflag { 0%{ transform:rotateX(0);} 100%{ transform:rotateX(360deg);} }
+.pop { animation:pop .32s cubic-bezier(.2,.9,.3,1.2) both; }
+.slidein { animation:slidein .3s ease both; }
+
+@media (max-width:620px){
+  body{ font-size:16px; }
+  .wrap{ padding:0 12px; }
+  .topbar .row{ padding:10px 12px; gap:10px; }
+  .brand .mark{ width:34px; height:24px; }
+  .brand h1{ font-size:16px; }
+  .brand .sub{ font-size:9.5px; letter-spacing:.12em; }
+  .pot-pill{ padding:5px 11px; }
+  .pot-pill b{ font-size:16px; }
+  .pot-pill small{ font-size:8px; }
+  .card-pad{ padding:14px; }
+  .nav button{ font-size:9px; padding:8px 2px 9px; letter-spacing:.02em; }
+  .nav button .ic{ font-size:19px; }
+  .btn{ font-size:15px; padding:12px 16px; }
+  .btn.big{ font-size:18px; padding:16px 20px; }
+  .hero-num{ font-size:clamp(40px,13vw,72px); }
+  .scorebox{ width:34px; height:38px; font-size:19px; }
+  .app{ padding-bottom:84px; }
+}
+@media (max-width:380px){
+  .brand .sub{ display:none; }
+  .nav button span:last-child{ font-size:8.5px; }
+  .pot-pill small{ display:none; }
+}

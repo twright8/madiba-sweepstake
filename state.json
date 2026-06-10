@@ -1,0 +1,7 @@
+{
+  "config": { "buyIn": 50, "currency": "R" },
+  "paid": {},
+  "draw": { "done": false, "locked": false, "order": [], "pot1": {}, "pot2": {}, "owners": {} },
+  "scores": {},
+  "koTeams": {}
+}
