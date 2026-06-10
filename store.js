@@ -6,14 +6,15 @@
   const { PEOPLE, CONFIG, TEAMS, TEAM_BY_CODE, GROUPS, FIXTURES, GROUP_FIXTURES } = window.WC;
   const KEY = "madiba_sweep_v1";
 
-  const HOST = !!window.HOST;          // host can edit + publish; everyone else is read-only
+  const HOST = !!window.HOST;          // host edits scores/results + starts/locks the draw
+  const DB = window.SWEEP_DB || null;  // Firebase ref('sweep'), or null = single-device fallback
 
   const defaultState = () => ({
     config: { buyIn: CONFIG.buyIn, currency: CONFIG.currency },
     paid: {},                 // personId -> bool
     draw: {
       done: false,
-      locked: false,          // once published, the draw can't be re-rolled
+      locked: false,          // once locked, the draw can't be re-rolled
       order: [],              // array of personId in pot-1 pick order
       pot1: {},               // personId -> [teamCode]
       pot2: {},               // personId -> [teamCode]
@@ -24,47 +25,83 @@
     lastSync: null,
   });
 
-  let state = load();
+  let ready = !DB;            // single-device mode is ready immediately; Firebase waits for first snapshot
+  let state = DB ? defaultState() : load();
 
   function load() {
-    // Host keeps a working copy in localStorage so unpublished edits survive a reload.
-    // Viewers never persist, so they always pick up the freshest published state.json.
     try {
-      if (HOST) {
-        const raw = localStorage.getItem(KEY);
-        if (raw) return Object.assign(defaultState(), JSON.parse(raw));
-      }
+      const raw = localStorage.getItem(KEY);
+      if (raw) return Object.assign(defaultState(), JSON.parse(raw));
     } catch (e) {}
     return defaultState();
   }
+
+  // a clean, Firebase-safe copy of the shared state (no functions, no transient fields)
+  function snapshot() {
+    return {
+      config: state.config || {},
+      paid: state.paid || {},
+      draw: {
+        done: !!state.draw.done, locked: !!state.draw.locked,
+        order: state.draw.order || [],
+        pot1: state.draw.pot1 || {}, pot2: state.draw.pot2 || {},
+        owners: state.draw.owners || {},
+      },
+      scores: state.scores || {},
+      koTeams: state.koTeams || {},
+    };
+  }
+  // merge a server/seed value over the defaults (Firebase drops empty objects/arrays)
+  function applyServer(v) {
+    const d = defaultState();
+    state = {
+      config: Object.assign(d.config, v.config || {}),
+      paid: v.paid || {},
+      draw: Object.assign(d.draw, v.draw || {}),
+      scores: v.scores || {},
+      koTeams: v.koTeams || {},
+      lastSync: state.lastSync || null,
+    };
+    state.draw.order = state.draw.order || [];
+    state.draw.pot1 = state.draw.pot1 || {};
+    state.draw.pot2 = state.draw.pot2 || {};
+    state.draw.owners = state.draw.owners || {};
+  }
+
   function save() {
-    if (HOST) { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+    if (DB) {
+      if (ready) { try { DB.set(snapshot()); } catch (e) { console.warn("[sweep] write failed", e && e.message); } }
+    } else if (HOST) {
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    }
     emit();
   }
 
-  /* ---- shared state.json (the published source of truth) ---- */
-  // Adopt the committed state.json. Host only adopts it if they have no local working copy.
+  // ---- Firebase live subscription ----
+  if (DB) {
+    DB.on("value", function (snap) {
+      const v = snap.val();
+      if (v) applyServer(v);
+      else if (HOST) { try { DB.set(snapshot()); } catch (e) {} }  // seed the empty node once
+      ready = true;
+      emit();
+    }, function (err) {
+      console.warn("[sweep] db read error:", err && err.message);
+      ready = true; emit();
+    });
+  }
+
+  // single-device fallback: seed from a committed state.json (no-op in Firebase mode)
   function hydrate(json) {
-    if (!json || typeof json !== "object") return;
-    const hasLocal = HOST && (() => { try { return !!localStorage.getItem(KEY); } catch (e) { return false; } })();
-    if (hasLocal) { emit(); return; }   // host is mid-edit — keep their working copy
-    state = Object.assign(defaultState(), json);
-    state.draw = Object.assign(defaultState().draw, json.draw || {});
+    if (DB) { emit(); return; }
+    if (json && typeof json === "object") applyServer(json);
     emit();
   }
-  // Serialize the shareable state for publishing (drops nothing the family needs).
-  function exportState() {
-    const out = {
-      config: state.config,
-      paid: state.paid,
-      draw: state.draw,
-      scores: state.scores,
-      koTeams: state.koTeams,
-    };
-    return JSON.stringify(out, null, 2);
-  }
+  function exportState() { return JSON.stringify(snapshot(), null, 2); }
   function lockDraw() { state.draw.locked = true; save(); }
   function isHost() { return HOST; }
+  function isReady() { return ready; }
+  function isLive() { return !!DB; }
 
   /* ---- pub/sub ---- */
   const subs = new Set();
@@ -362,7 +399,7 @@
     get state() { return state; },
     subscribe, save,
     // shared state / host
-    hydrate, exportState, lockDraw, isHost,
+    hydrate, exportState, lockDraw, isHost, isReady, isLive,
     // draw
     rollOrder, availablePot1, pot1Pick, pot1RandomFor,
     availablePot2, pot2Target, pot2RandomFor, pot2FillFor, drawComplete, resetDraw,

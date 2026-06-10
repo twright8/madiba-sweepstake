@@ -53,7 +53,7 @@ function Draw({ goTo }) {
   return (
     <div className="wrap" style={{ paddingTop: 18 }}>
       <Confetti go={confetti} />
-      {phase === "intro" && <DrawIntro onRoll={rollOrder} />}
+      {phase === "intro" && (window.HOST ? <DrawIntro onRoll={rollOrder} /> : <DrawWaiting />)}
       {phase === "order" && <OrderReveal order={order} revealed={revealed} />}
       {phase === "draft" && <Draft picksMade={picksMade} order={order} />}
       {phase === "pot2" && <Pot2Stage order={order} onDone={fireConfetti} />}
@@ -82,8 +82,30 @@ function DrawIntro({ onRoll }) {
       </Card>
       <button className="btn green big" onClick={onRoll}>🎲 &nbsp;Roll the pick order</button>
       <p className="muted" style={{ textAlign: "center", fontSize: 13, margin: 0 }}>
-        Best done together — one screen, around the table.
+        Everyone picks from their own phone — when it's your turn, Tom sends you the link.
       </p>
+    </div>
+  );
+}
+
+/* ---------- waiting (non-host, before the draw starts) ---------- */
+function DrawWaiting() {
+  return (
+    <div className="grid" style={{ gap: 16, maxWidth: 560, margin: "0 auto", paddingTop: 8 }}>
+      <div style={{ textAlign: "center" }}>
+        <div className="kicker">The Big Draw</div>
+        <h1 style={{ fontSize: "clamp(30px,8vw,52px)", margin: "6px 0" }}>Hang tight…</h1>
+      </div>
+      <Card title="How it works">
+        <ol style={{ margin: 0, paddingLeft: 20, lineHeight: 1.7, fontWeight: 600 }}>
+          <li><b>Tom kicks off the draw</b> and a random pick order is drawn.</li>
+          <li><b>When it's your turn, you'll get a link.</b> Open it, <b>choose your team</b> (Pot 1), then tap once for a <b>random team</b> (Pot 2).</li>
+          <li>Everyone ends up with <b>2 teams</b>. Winner is whoever's team goes <b>furthest</b>.</li>
+        </ol>
+        <p className="muted" style={{ marginBottom: 0, marginTop: 14, fontSize: 14 }}>
+          Keep an eye on the family chat — Tom will tell you when you're up. 🇿🇦
+        </p>
+      </Card>
     </div>
   );
 }
@@ -233,56 +255,52 @@ function Draft({ picksMade, order }) {
   );
 }
 
-/* ---------- Pot 2: click-to-reveal, one random team per tap ---------- */
+/* ---------- Pot 2: one random team per person, auto-advancing across devices ---------- */
 function Pot2Stage({ order, onDone }) {
   const target = Store.pot2Target();
   const draw = Store.state.draw;
-  const firstIncomplete = () => order.find(id => (draw.pot2[id] || []).length < target) || order[order.length - 1];
-  const [holdId, setHoldId] = useState(firstIncomplete());
-  const [spinning, setSpinning] = useState(false);
-  const [reel, setReel] = useState(null);
+  // whose turn it is = first person still without their random team (shared, derived)
+  const firstIncomplete = order.find(id => (draw.pot2[id] || []).length < target);
+  const allDone = !firstIncomplete;
+  const holdId = firstIncomplete || order[order.length - 1];
 
-  const list = draw.pot2[holdId] || [];
-  const person = WC.PEOPLE.find(p => p.id === holdId);
-  const complete = list.length >= target;
-  const nextId = order.find(id => id !== holdId && (draw.pot2[id] || []).length < target);
-  const allDone = order.every(id => (draw.pot2[id] || []).length >= target);
+  const [spinning, setSpinning] = useState(false);
+  const [reel, setReel] = useState(null);            // spinning / just-revealed code (this device only)
+  const [revealedFor, setRevealedFor] = useState(null);
+
+  // while a reveal result is on screen, keep showing the person it was for; otherwise the current turn
+  const resultMode = !!reel && !spinning && !!revealedFor;
+  const displayId = resultMode ? revealedFor : holdId;
+  const person = WC.PEOPLE.find(p => p.id === displayId);
+  const list = draw.pot2[displayId] || [];
 
   function reveal() {
-    if (complete || spinning) return;
-    setSpinning(true);
-    // slot-machine reel of random flags
+    if (spinning || allDone || (draw.pot2[holdId] || []).length >= target) return;
+    const who = holdId;
+    setSpinning(true); setRevealedFor(who);
     let ticks = 0;
     const avail = Store.availablePot2();
     const iv = setInterval(() => {
       setReel(avail[Math.floor(Math.random() * avail.length)].code);
       if (++ticks > 9) {
         clearInterval(iv);
-        const got = Store.pot2RandomFor(holdId);
+        const got = Store.pot2RandomFor(who);
         setReel(got ? got.code : null);
         setSpinning(false);
         if (Store.state.draw.done) onDone && onDone();
       }
     }, 70);
   }
-  function fillAll() {
-    if (spinning) return;
-    Store.pot2FillFor(holdId);
-    setReel(null);
-    if (Store.state.draw.done) onDone && onDone();
-  }
-  function pass() {
-    const nxt = firstIncomplete();
-    setReel(null);
-    setHoldId(nxt);
-  }
+  function next() { setReel(null); setRevealedFor(null); }
+
+  const nextName = firstIncomplete ? (WC.PEOPLE.find(p => p.id === firstIncomplete) || {}).name : null;
 
   return (
     <div className="grid" style={{ gap: 14, maxWidth: 560, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginTop: 2 }}>
         <div className="kicker">Pot 2 · The lucky dip</div>
-        <h1 style={{ fontSize: "clamp(26px,7vw,42px)", margin: "4px 0 2px" }}>{target > 1 ? "Tap for your teams" : "Tap for your team"}</h1>
-        <p className="muted" style={{ margin: 0, fontSize: 14 }}>{target > 1 ? `${target} random teams each.` : "One random team each."} Pure chance.</p>
+        <h1 style={{ fontSize: "clamp(26px,7vw,42px)", margin: "4px 0 2px" }}>One random team each</h1>
+        <p className="muted" style={{ margin: 0, fontSize: 14 }}>Pure chance. When it's your turn, tap to reveal.</p>
       </div>
 
       {/* current player card */}
@@ -291,13 +309,13 @@ function Pot2Stage({ order, onDone }) {
         <div className="card-pad">
           <div className="between">
             <div className="row" style={{ gap: 10 }}>
-              <Ava id={holdId} />
+              <Ava id={displayId} />
               <div style={{ fontFamily: "var(--display)", fontSize: 24, textTransform: "uppercase", lineHeight: 1 }}>{person.name}</div>
             </div>
-            <span className="pill gold" style={{ color: "var(--ink)" }}>{list.length} / {target}</span>
+            <span className="pill gold" style={{ color: "var(--ink)" }}>{resultMode ? "Done" : "Your turn"}</span>
           </div>
 
-          {/* reel / slots */}
+          {/* reel / result */}
           <div style={{ marginTop: 14, minHeight: 92, display: "grid", placeItems: "center" }}>
             {spinning ? (
               <div className="card" style={{ padding: "14px 18px", background: "#fff", color: "var(--ink)", transform: "scale(1.05)" }}>
@@ -306,49 +324,35 @@ function Pot2Stage({ order, onDone }) {
                   <b style={{ fontFamily: "var(--display)", fontSize: 22 }}>{reel ? WC.TEAM_BY_CODE[reel].name : "…"}</b>
                 </div>
               </div>
-            ) : reel ? (
+            ) : resultMode ? (
               <div className="card pop" style={{ padding: "14px 18px", background: "var(--gold)", color: "var(--ink)", borderColor: "var(--ink)" }}>
-                <div className="kicker" style={{ textAlign: "center" }}>You got</div>
+                <div className="kicker" style={{ textAlign: "center" }}>{person.name} got</div>
                 <div className="row" style={{ gap: 12, marginTop: 4 }}>
                   <Flag code={reel} size={36} />
-                  <b style={{ fontFamily: "var(--display)", fontSize: 26 }}>{WC.TEAM_BY_CODE[reel].name}</b>
+                  <b style={{ fontFamily: "var(--display)", fontSize: 26 }}>{reel ? WC.TEAM_BY_CODE[reel].name : "—"}</b>
                 </div>
               </div>
             ) : (
               <div className="muted" style={{ color: "rgba(255,255,255,.85)", fontWeight: 700, textAlign: "center" }}>
-                {complete ? (target > 1 ? "All revealed!" : "Team revealed!") : `${person.name}, tap the button to reveal your team.`}
+                {allDone ? "Everyone's in!" : `${person.name}, tap the button to reveal your team.`}
               </div>
             )}
-          </div>
-
-          {/* this player's revealed teams */}
-          <div className="row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "center", marginTop: 6, minHeight: 26 }}>
-            {list.map(c => (
-              <span key={c} className="pill" style={{ background: "rgba(255,255,255,.16)", color: "#fff", borderColor: "rgba(0,0,0,.3)" }}>
-                <Flag code={c} size={14} /> {WC.TEAM_BY_CODE[c].name}
-              </span>
-            ))}
           </div>
         </div>
       </div>
 
       {/* actions */}
-      {!complete ? (
-        <div className="grid" style={{ gap: 8 }}>
-          <button className="btn red big" onClick={reveal} disabled={spinning}>
-            {spinning ? "Spinning…" : target > 1 ? `🎲  Reveal a team (${list.length + 1} of ${target})` : `🎲  Reveal ${person.name}'s team`}
-          </button>
-          {target > 1 && (
-            <button className="btn ghost sm" onClick={fillAll} disabled={spinning}>
-              Can't be bothered? Reveal all {target} at once
-            </button>
-          )}
-        </div>
-      ) : nextId ? (
-        <button className="btn green big" onClick={pass}>Pass to {WC.PEOPLE.find(p => p.id === nextId).name} →</button>
+      {spinning ? (
+        <button className="btn red big" disabled>Spinning…</button>
+      ) : resultMode ? (
+        firstIncomplete
+          ? <button className="btn green big" onClick={next}>Next: {nextName} →</button>
+          : <button className="btn green big" onClick={() => onDone && onDone()}>🎉  Everyone's in — see the squads</button>
       ) : allDone ? (
         <button className="btn green big" onClick={() => onDone && onDone()}>🎉  Everyone's in — see the squads</button>
-      ) : null}
+      ) : (
+        <button className="btn red big" onClick={reveal}>🎲  Reveal {person.name}'s team</button>
+      )}
 
       {/* mini progress of everyone */}
       <div className="card flat" style={{ padding: "10px 12px" }}>
@@ -358,7 +362,7 @@ function Pot2Stage({ order, onDone }) {
             return (
               <div key={id} className="row" style={{ gap: 5, opacity: n >= target ? 1 : .5 }}>
                 <Ava id={id} sm />
-                <span style={{ fontWeight: 800, fontSize: 12 }}>{n}/{target}</span>
+                <span style={{ fontWeight: 800, fontSize: 12 }}>{n >= target ? "✓" : "…"}</span>
               </div>
             );
           })}
@@ -379,11 +383,16 @@ function DrawDone({ goTo, onReset }) {
         <p className="muted" style={{ margin: 0 }}>Two teams each. May the best Saffa win.</p>
       </div>
 
-      {window.HOST && (
+      {window.HOST && !d.locked && (
         <div className="card card-pad" style={{ background: "var(--gold)", textAlign: "center" }}>
           <b style={{ fontFamily: "var(--display)", fontSize: 18, textTransform: "uppercase" }}>One last step</b>
-          <p style={{ fontWeight: 600, margin: "6px 0 10px", fontSize: 14 }}>Lock this draw in for the whole family. After this, nobody can re-roll it.</p>
-          <button className="btn red" onClick={() => window.openPublish && window.openPublish()}>🔒 &nbsp;Lock & publish this draw</button>
+          <p style={{ fontWeight: 600, margin: "6px 0 10px", fontSize: 14 }}>Lock the draw in for the whole family. After this, nobody can re-roll it.</p>
+          <button className="btn red" onClick={() => Store.lockDraw()}>🔒 &nbsp;Lock the draw</button>
+        </div>
+      )}
+      {d.locked && (
+        <div className="card card-pad" style={{ background: "var(--green)", color: "#fff", textAlign: "center" }}>
+          <b style={{ fontFamily: "var(--display)", fontSize: 16, textTransform: "uppercase" }}>🔒 Draw locked — it's official</b>
         </div>
       )}
 
@@ -395,7 +404,7 @@ function DrawDone({ goTo, onReset }) {
 
       <div className="row" style={{ gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 6 }}>
         <button className="btn green" onClick={() => goTo("squads")}>See full squads →</button>
-        {window.HOST && <button className="btn ghost sm" onClick={onReset}>Re-draw everything</button>}
+        {window.HOST && !d.locked && <button className="btn ghost sm" onClick={onReset}>Re-draw everything</button>}
       </div>
     </div>
   );

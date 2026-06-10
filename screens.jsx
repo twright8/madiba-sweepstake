@@ -23,6 +23,7 @@ function nextFixture(ownedOnly) {
 /* ============================ HOME ============================ */
 function Home({ goTo }) {
   const drawDone = Store.state.draw.done;
+  const drawStarted = (Store.state.draw.order || []).length > 0;
   const [egg, setEgg] = useState(false);
   const pot = Store.potTotal();
   const collected = Store.collected();
@@ -59,18 +60,26 @@ function Home({ goTo }) {
       {champ && <ChampBanner champ={champ} />}
 
       {/* draw CTA or status */}
-      {!drawDone ? (
+      {drawStarted && !drawDone ? (
+        <div className="card card-pad" style={{ textAlign: "center", background: "var(--red)", color: "#fff" }}>
+          <h2 style={{ fontSize: 26, color: "#fff" }}>🔴 &nbsp;The draw is LIVE</h2>
+          <p style={{ fontWeight: 600, marginTop: 6 }}>Picks are happening now. When it's your turn, jump in and grab your team.</p>
+          <button className="btn gold big" style={{ maxWidth: 340, margin: "8px auto 0" }} onClick={() => goTo("draw")}>
+            🎲 &nbsp;Go to the draw
+          </button>
+        </div>
+      ) : !drawDone ? (
         <div className="card card-pad" style={{ textAlign: "center", background: "var(--gold)" }}>
           <h2 style={{ fontSize: 26 }}>The draw hasn't happened yet</h2>
           {window.HOST ? (
             <>
-              <p style={{ fontWeight: 600, marginTop: 6 }}>Gather the family, hit the button, hand out the teams.</p>
+              <p style={{ fontWeight: 600, marginTop: 6 }}>Kick it off, then text each person to grab their team on their phone.</p>
               <button className="btn red big" style={{ maxWidth: 340, margin: "8px auto 0" }} onClick={() => goTo("draw")}>
                 🎲 &nbsp;Run the draw
               </button>
             </>
           ) : (
-            <p style={{ fontWeight: 600, marginTop: 6 }}>Tom runs the draw with the family — your two teams will appear here once it's done. Check back soon. 🇿🇦</p>
+            <p style={{ fontWeight: 600, marginTop: 6 }}>When it's your turn, Tom will send you the link to pick your own team. Your two teams show up here once the draw's done. 🇿🇦</p>
           )}
         </div>
       ) : (
