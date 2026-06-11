@@ -6,12 +6,13 @@
 window.SWEEP_DB = null;
 try {
   const firebaseConfig = {
-    // <<< PASTE YOUR FIREBASE CONFIG HERE (keep the field names) >>>
-    // apiKey: "...",
-    // authDomain: "your-project.firebaseapp.com",
-    // databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-    // projectId: "your-project",
-    // appId: "..."
+    apiKey: "AIzaSyBOLm3RYC8h7clg-eHtJzWU5ToLtJONuN0",
+    authDomain: "sweep-826cc.firebaseapp.com",
+    databaseURL: "https://sweep-826cc-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "sweep-826cc",
+    storageBucket: "sweep-826cc.firebasestorage.app",
+    messagingSenderId: "398487021068",
+    appId: "1:398487021068:web:974dbeda7baaff3b4ef029"
   };
   if (firebaseConfig.databaseURL && window.firebase) {
     firebase.initializeApp(firebaseConfig);
