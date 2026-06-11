@@ -32,7 +32,7 @@ function App() {
   if (!Store.isReady() && !timedOut) return <ConnectingScreen />;
 
   const cur = Store.state.config.currency;
-  const pot = Store.potTotal();
+  const pot = Store.potTotal() * 2;   // two pots (Pick + Dip)
   const drawStarted = (Store.state.draw.order || []).length > 0 || Store.state.draw.done;
 
   // Draw tab: host always sees it; everyone sees it once a draw is running or done.
@@ -61,7 +61,7 @@ function App() {
             </div>
           </div>
           <div className="pot-pill" onClick={() => goTo("pot")} style={{ cursor: "pointer", marginLeft: "auto" }}>
-            <small>Prize pot</small>
+            <small>Two pots</small>
             <b>{cur}{pot}</b>
           </div>
         </div>

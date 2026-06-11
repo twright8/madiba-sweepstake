@@ -51,12 +51,12 @@ function Home({ goTo }) {
             Madiba Magic<br />Sweepstake
           </h1>
           <p style={{ margin: 0, fontWeight: 600, maxWidth: 520, opacity: .95 }}>
-            Ten Saffas. Forty-eight teams. One pot. Two teams each, winner goes furthest. Kick-off <b>11 June, 21:00 SAST</b> — Mexico vs Bafana Bafana.
+            Ten Saffas. Forty-eight teams. Two teams each — your <b>pick</b> and your <b>random</b> each race for their own pot. Kick-off <b>11 June, 21:00 SAST</b> — Mexico vs Bafana Bafana.
           </p>
         </div>
       </div>
 
-      {drawDone && <RaceBoard goTo={goTo} compact />}
+      {drawDone && <RaceMiniDual goTo={goTo} />}
       {champ && <ChampBanner champ={champ} />}
 
       {/* draw CTA or status */}
@@ -102,33 +102,32 @@ function Home({ goTo }) {
       {/* next match */}
       {next && <NextMatchCard x={next} goTo={goTo} />}
 
-      {/* pot */}
+      {/* pots */}
       <div className="card">
         <span className="flagband"><i /><i /><i /><i /><i /><i /></span>
         <div className="card-pad">
           <div className="between">
-            <div className="section-title"><span className="dot" />The Pot</div>
+            <div className="section-title"><span className="dot" />The Pots</div>
             <button className="btn sm" onClick={() => goTo("pot")}>Manage →</button>
           </div>
-          <div className="between" style={{ marginTop: 12, alignItems: "flex-end" }}>
-            <div>
-              <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".1em", fontWeight: 800 }}>Total prize pot</div>
-              <div className="hero-num" style={{ fontSize: 54 }}>{cur}{pot}</div>
+          <div className="row" style={{ gap: 12, marginTop: 12 }}>
+            <div className="card flat" style={{ flex: 1, padding: "12px 10px", textAlign: "center", background: "var(--paper)" }}>
+              <div className="muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>🎯 Pick Pot</div>
+              <div className="hero-num" style={{ fontSize: 40 }}>{cur}{pot}</div>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div className="pill" style={{ background: collected === pot ? "var(--green)" : "var(--gold)", color: collected === pot ? "#fff" : "var(--ink)" }}>
-                {cur}{collected} collected
-              </div>
-              <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                {collected === pot ? "Everyone's paid up. A miracle." : `${cur}${pot - collected} still floating around`}
-              </div>
+            <div className="card flat" style={{ flex: 1, padding: "12px 10px", textAlign: "center", background: "var(--paper)" }}>
+              <div className="muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".08em", fontWeight: 800 }}>🎲 Dip Pot</div>
+              <div className="hero-num" style={{ fontSize: 40 }}>{cur}{pot}</div>
             </div>
+          </div>
+          <div className="muted" style={{ textAlign: "center", marginTop: 10, fontSize: 12.5, fontWeight: 600 }}>
+            {cur}{collected * 2} of {cur}{pot * 2} in · {cur}{(Store.state.config.buyIn || 0) * 2} each ({cur}{Store.state.config.buyIn || 0} per pot)
           </div>
         </div>
       </div>
 
       <p className="muted" style={{ textAlign: "center", fontSize: 12.5, margin: "2px 0 0" }}>
-        Winner = whoever's team goes <b>furthest</b> in the tournament. Last Saffa standing takes the pot.
+        Two pots: the <b>Pick Pot</b> goes to whoever's chosen team goes furthest, the <b>Dip Pot</b> to whoever's random team goes furthest. You can win both.
       </p>
       <p className="muted" style={{ textAlign: "center", fontSize: 12.5, margin: "-8px 0 0", fontStyle: "italic", opacity: .8 }}>
         Shafeea has requested two random teams and a diagram of the offside rule. Only one will be provided.
@@ -238,7 +237,7 @@ function DetailedSquad({ id }) {
   const p = WC.PEOPLE.find(p => p.id === id);
   const teams = Store.teamsOf(id);
   const p1 = Store.state.draw.pot1[id] || [];
-  const alive = teams.filter(t => Store.teamStatus(t.code).state !== "out").length;
+  const alive = teams.filter(t => !Store.isEliminated(t.code)).length;
   return (
     <div className="card flat">
       <div className="between" style={{ padding: "12px 14px 8px" }}>
@@ -246,7 +245,7 @@ function DetailedSquad({ id }) {
           <Ava id={id} />
           <b style={{ fontFamily: "var(--display)", fontSize: 22, textTransform: "uppercase" }}>{p.name}</b>
         </div>
-        <span className="pill grey" style={{ fontSize: 10 }}>{alive} alive</span>
+        <span className="pill grey" style={{ fontSize: 10 }}>{alive}/2 alive</span>
       </div>
       <div className="zig" style={{ height: 10, borderWidth: 2 }} />
       <div style={{ padding: "9px 14px 2px" }}>
@@ -254,19 +253,22 @@ function DetailedSquad({ id }) {
       </div>
       <div style={{ padding: "6px 14px 14px" }}>
         {teams.map(t => {
-          const st = Store.teamStatus(t.code);
+          const out = Store.isEliminated(t.code);
+          const prog = Store.teamProgress(t.code);
+          const isPick = p1.includes(t.code);
           return (
-            <div key={t.code} className="between" style={{ padding: "5px 0", opacity: st.state === "out" ? .4 : 1 }}>
-              <span className="teamline">
-                <span style={{ textDecoration: st.state === "out" ? "line-through" : "none", display: "inline-flex" }}><Flag code={t.code} size={20} /></span>
-                <span className="nm" style={{ textDecoration: st.state === "out" ? "line-through" : "none" }}>{t.name}</span>
-                {t.fav && <span className="fav-star">★</span>}
-              </span>
-              <span className="pill" style={{
-                fontSize: 9,
-                background: st.state === "alive" ? "var(--green)" : st.state === "out" ? "#e7ddc6" : "var(--white)",
-                color: st.state === "alive" ? "#fff" : "var(--ink)",
-              }}>{p1.includes(t.code) ? "Pick" : "Dip"}</span>
+            <div key={t.code} className="between" style={{ padding: "6px 0", opacity: out ? .5 : 1 }}>
+              <div style={{ minWidth: 0 }}>
+                <span className="teamline">
+                  <span style={{ textDecoration: out ? "line-through" : "none", display: "inline-flex" }}><Flag code={t.code} size={20} /></span>
+                  <span className="nm" style={{ textDecoration: out ? "line-through" : "none" }}>{t.name}</span>
+                  {t.fav && <span className="fav-star">★</span>}
+                </span>
+                <div className="muted" style={{ fontSize: 10.5, fontWeight: 700, marginLeft: 30 }}>
+                  {isPick ? "🎯 Pick Pot" : "🎲 Dip Pot"} · {out ? "out" : prog.label}
+                </div>
+              </div>
+              <span className="pill" style={{ fontSize: 9, background: out ? "#e7ddc6" : "var(--green)", color: out ? "var(--ink)" : "#fff" }}>{out ? "OUT" : "IN"}</span>
             </div>
           );
         })}
@@ -346,24 +348,36 @@ function Pot() {
 
       <div className="card" style={{ background: "var(--gold)" }}>
         <span className="flagband"><i /><i /><i /><i /><i /><i /></span>
-        <div className="card-pad between" style={{ alignItems: "flex-end" }}>
-          <div>
-            <div className="muted" style={{ fontWeight: 900, textTransform: "uppercase", fontSize: 12, letterSpacing: ".1em", whiteSpace: "nowrap" }}>Winner takes all</div>
-            <div className="hero-num" style={{ fontSize: 64 }}>{cur}{pot}</div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <label className="muted" style={{ fontWeight: 800, fontSize: 12, display: "block", textTransform: "uppercase" }}>Buy-in each</label>
-            <div className="row" style={{ gap: 4, justifyContent: "flex-end", marginTop: 4 }}>
-              <b style={{ fontFamily: "var(--display)", fontSize: 24 }}>{cur}</b>
-              <input type="number" min="0" value={cfg.buyIn} readOnly={!window.HOST}
-                onChange={e => { Store.setBuyIn(e.target.value); force(x => x + 1); }}
-                style={{ width: 90, fontFamily: "var(--display)", fontSize: 24, border: "3px solid var(--ink)", borderRadius: 10, textAlign: "center", background: window.HOST ? "#fff" : "#efe6cf" }} />
+        <div className="card-pad">
+          <div className="muted" style={{ fontWeight: 900, textTransform: "uppercase", fontSize: 12, letterSpacing: ".1em" }}>Two pots · two chances</div>
+          <div className="row" style={{ gap: 12, marginTop: 8 }}>
+            <div style={{ flex: 1, textAlign: "center", border: "3px solid var(--ink)", borderRadius: 14, padding: "12px 8px", background: "var(--white)" }}>
+              <div className="muted" style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>🎯 Pick Pot</div>
+              <div className="hero-num" style={{ fontSize: 44 }}>{cur}{pot}</div>
+              <div className="muted" style={{ fontSize: 10.5 }}>furthest chosen team</div>
+            </div>
+            <div style={{ flex: 1, textAlign: "center", border: "3px solid var(--ink)", borderRadius: 14, padding: "12px 8px", background: "var(--white)" }}>
+              <div className="muted" style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>🎲 Dip Pot</div>
+              <div className="hero-num" style={{ fontSize: 44 }}>{cur}{pot}</div>
+              <div className="muted" style={{ fontSize: 10.5 }}>furthest random team</div>
             </div>
           </div>
+          <div className="between" style={{ marginTop: 12, alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ fontWeight: 800, fontSize: 13 }}>Buy-in <b style={{ fontFamily: "var(--display)", fontSize: 18 }}>{cur}{(cfg.buyIn || 0) * 2}</b> each</div>
+            <div className="row" style={{ gap: 5, alignItems: "center" }}>
+              <label className="muted" style={{ fontSize: 10.5, fontWeight: 800, textTransform: "uppercase" }}>{cur} per pot</label>
+              <input type="number" min="0" value={cfg.buyIn} readOnly={!window.HOST}
+                onChange={e => { Store.setBuyIn(e.target.value); force(x => x + 1); }}
+                style={{ width: 70, fontFamily: "var(--display)", fontSize: 20, border: "3px solid var(--ink)", borderRadius: 10, textAlign: "center", background: window.HOST ? "#fff" : "#efe6cf" }} />
+            </div>
+          </div>
+          <p className="muted" style={{ fontSize: 11.5, margin: "10px 0 0" }}>
+            You can win <b>both</b>. Level teams split on <b>group points → goal difference → goals scored</b>.
+          </p>
         </div>
       </div>
 
-      <Card title="Who's paid up?" action={<span className="pill" style={{ background: collected === pot ? "var(--green)" : "var(--white)", color: collected === pot ? "#fff" : "var(--ink)" }}>{cur}{collected} / {cur}{pot}</span>}>
+      <Card title="Who's paid up?" action={<span className="pill" style={{ background: collected === pot ? "var(--green)" : "var(--white)", color: collected === pot ? "#fff" : "var(--ink)" }}>{cur}{collected * 2} / {cur}{pot * 2}</span>}>
         <p className="muted" style={{ fontSize: 13, margin: "0 0 10px" }}>
           We <i>will</i> forget this, exactly like Splitwise. Hence the buttons.
         </p>

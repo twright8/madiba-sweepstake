@@ -177,8 +177,11 @@ function Standings() {
       </div>
       {tab === "race"
         ? (Store.state.draw.done
-            ? <RaceBoard />
-            : <EmptyState title="No race yet" msg="Once the draw is done, the race to go furthest shows up here." />)
+            ? <div className="grid" style={{ gap: 16 }}>
+                <RaceBoard pot="pick" />
+                <RaceBoard pot="dip" />
+              </div>
+            : <EmptyState title="No races yet" msg="Once the draw is done, the two races — Pick Pot and Dip Pot — show up here." />)
         : tab === "groups" ? <GroupTables /> : <Bracket />}
     </div>
   );

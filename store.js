@@ -363,6 +363,43 @@
   // true once a single champion (level 6) exists — the sweepstake is decided
   function raceDecided() { return !!champion(); }
 
+  /* ---- DUAL POTS: the Pick race (chosen, pot1) and the Dip race (random, pot2) ----
+     Two independent contests; each person has one team in each. READ-ONLY on the draw. */
+  function isEliminated(code) {
+    if (!code) return false;
+    if (champion() === code) return false;               // winners aren't out
+    const st = teamStatus(code);
+    if (st.state === "out") return true;                 // didn't get out of the group
+    if (st.state === "playing") return false;            // group not finished yet
+    // through the group — out only if it lost a knockout match (appears as a Loser slot)
+    return Object.keys(state.koTeams).some(k => /^L\d+$/.test(k) && state.koTeams[k] === code);
+  }
+  // rank the 10 people by their pick (pot1) or dip (pot2) team's progress
+  function raceByPot(which) {
+    const key = which === "pick" ? "pot1" : "pot2";
+    const rows = PEOPLE.map(p => {
+      const code = ((state.draw[key] || {})[p.id] || [])[0] || null;
+      return {
+        person: p, code,
+        team: code ? TEAM_BY_CODE[code] : null,
+        prog: code ? teamProgress(code) : { level: -1, label: "—" },
+        eliminated: code ? isEliminated(code) : false,
+      };
+    });
+    rows.sort((a, b) => b.prog.level - a.prog.level || tieKey(b.code) - tieKey(a.code));
+    return rows;
+  }
+  // a pot has a locked-in winner once only one team is still alive, or the final's been played
+  function potWinnerLocked(which) {
+    const rows = raceByPot(which);
+    const started = Object.keys(state.scores || {}).length > 0 || Object.keys(state.koTeams || {}).length > 0;
+    if (!started) return null;
+    const alive = rows.filter(r => r.code && !r.eliminated);
+    if (alive.length === 1) return alive[0];
+    if (champion()) return rows[0];   // tournament over → furthest team takes it
+    return null;
+  }
+
   /* ---- LIVE SYNC (TheSportsDB free feed; only works online/deployed) ---- */
   const NAME_MAP = {
     "USA":"USA","United States":"USA","South Korea":"KOR","Korea Republic":"KOR",
@@ -417,6 +454,8 @@
     setScore, getScore, clearScores, groupTable, thirdPlaceRanking, teamStatus,
     // the race (furthest wins)
     teamProgress, personRace, champion, raceDecided,
+    // dual pots (Pick + Dip)
+    raceByPot, isEliminated, potWinnerLocked,
     // ko
     setKoTeam, resolveSlot,
     // live
