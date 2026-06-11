@@ -99,6 +99,13 @@
   }
   function exportState() { return JSON.stringify(snapshot(), null, 2); }
   function lockDraw() { state.draw.locked = true; save(); }
+  // full clean slate: wipe draw + scores + knockouts + paid (keeps buy-in/currency). Works even when locked.
+  function resetAll() {
+    const cfg = state.config;
+    state = defaultState();
+    state.config = cfg;
+    save();
+  }
   function isHost() { return HOST; }
   function isReady() { return ready; }
   function isLive() { return !!DB; }
@@ -399,7 +406,7 @@
     get state() { return state; },
     subscribe, save,
     // shared state / host
-    hydrate, exportState, lockDraw, isHost, isReady, isLive,
+    hydrate, exportState, lockDraw, resetAll, isHost, isReady, isLive,
     // draw
     rollOrder, availablePot1, pot1Pick, pot1RandomFor,
     availablePot2, pot2Target, pot2RandomFor, pot2FillFor, drawComplete, resetDraw,

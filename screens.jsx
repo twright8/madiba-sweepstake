@@ -51,7 +51,7 @@ function Home({ goTo }) {
             Madiba Magic<br />Sweepstake
           </h1>
           <p style={{ margin: 0, fontWeight: 600, maxWidth: 520, opacity: .95 }}>
-            Nine Saffas. Forty-eight teams. One pot. Two teams each, winner goes furthest. Kick-off <b>11 June, 21:00 SAST</b> — Mexico vs Bafana Bafana.
+            Ten Saffas. Forty-eight teams. One pot. Two teams each, winner goes furthest. Kick-off <b>11 June, 21:00 SAST</b> — Mexico vs Bafana Bafana.
           </p>
         </div>
       </div>
@@ -329,6 +329,7 @@ function Pot() {
     tom:       "The cash is ‘in the car.’ The car is elsewhere.",
     caroline:  "Three reminders deep, utterly unbothered.",
     ross:      "‘Will sort it after the next game.’ The next game keeps moving.",
+    nips:      "Adamant the money was handed over. In cash. To someone. Once.",
   };
   const PAID = {
     gav: "Paid up. Smug about it.", catherine: "Paid. A genuine shock.",
@@ -336,6 +337,7 @@ function Pot() {
     shafeea: "Paid before she understood the rules. Legend.", tara: "Paid. No notes.",
     tom: "Paid up. Mark the calendar.", caroline: "Paid. Effortlessly.",
     ross: "Paid up. First time for everything.",
+    nips: "Paid in full. Receipts and everything. Show-off.",
   };
 
   return (
@@ -391,6 +393,20 @@ function Pot() {
           Honesty system. The app can't actually chase anyone — that's still your job, group-chat enforcer.
         </p>
       </Card>
+
+      {window.HOST && (
+        <div className="card flat" style={{ borderColor: "var(--red)" }}>
+          <div className="card-pad">
+            <div className="section-title" style={{ color: "var(--red)" }}><span className="dot" />Host controls</div>
+            <p className="muted" style={{ fontSize: 13, margin: "8px 0 10px" }}>
+              Wipe the draw, all scores and paid status back to a clean slate — for everyone. Use this after a test run.
+            </p>
+            <button className="btn red sm" onClick={() => {
+              if (confirm("Wipe EVERYTHING — the draw, all scores and paid status — and start from a clean slate? This clears it for everyone.")) { Store.resetAll(); force(x => x + 1); }
+            }}>🧹 &nbsp;Reset the whole sweepstake</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

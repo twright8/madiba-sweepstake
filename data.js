@@ -6,7 +6,7 @@
    converted to SAST (Africa/Johannesburg) at display time.
    ============================================================ */
 
-/* ---- The 9 family members (pre-loaded, no logins) ---- */
+/* ---- The 10 family members (pre-loaded, no logins) ---- */
 const PEOPLE = [
   { id: "gav",       name: "Gav",       emoji: "🦁" },
   { id: "catherine", name: "Catherine", emoji: "🌺" },
@@ -17,6 +17,7 @@ const PEOPLE = [
   { id: "tom",       name: "Tom",       emoji: "🐂" },
   { id: "caroline",  name: "Caroline",  emoji: "🦋" },
   { id: "ross",      name: "Ross",      emoji: "🦅" },
+  { id: "nips",      name: "Nips",      emoji: "🦏" },
 ];
 
 /* ---- Config (editable in-app) ---- */

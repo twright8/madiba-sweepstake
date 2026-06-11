@@ -405,6 +405,11 @@ function DrawDone({ goTo, onReset }) {
       <div className="row" style={{ gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 6 }}>
         <button className="btn green" onClick={() => goTo("squads")}>See full squads →</button>
         {window.HOST && !d.locked && <button className="btn ghost sm" onClick={onReset}>Re-draw everything</button>}
+        {window.HOST && (
+          <button className="btn ghost sm" onClick={() => {
+            if (confirm("Wipe EVERYTHING — the draw, all scores and paid status — and start from a clean slate? This clears it for everyone.")) Store.resetAll();
+          }}>🧹 Reset everything</button>
+        )}
       </div>
     </div>
   );
