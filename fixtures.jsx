@@ -75,9 +75,11 @@ function Calendar() {
               {mineOnly ? "✓ Owned teams" : "Owned teams"}
             </button>
           )}
-          <button className="btn gold sm" onClick={doSync} disabled={sync.state === "loading"}>
-            {sync.state === "loading" ? "Syncing…" : "⟳ Live scores"}
-          </button>
+          {window.HOST && (
+            <button className="btn gold sm" onClick={doSync} disabled={sync.state === "loading"}>
+              {sync.state === "loading" ? "Syncing…" : "⟳ Live scores"}
+            </button>
+          )}
         </div>
       </div>
 

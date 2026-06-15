@@ -400,11 +400,15 @@
     return null;
   }
 
-  /* ---- LIVE SYNC (TheSportsDB free feed; only works online/deployed) ---- */
+  /* ---- LIVE SYNC (ESPN's free fifa.world scoreboard; keyless, CORS-ok, online only) ----
+     ESPN's team abbreviations match our codes 1:1, so matching is abbr-first with a
+     name fallback. Only FINAL (completed) group games are applied; knockout games use
+     slot-based fixtures so they never match here and are skipped (host taps KO winners). */
   const NAME_MAP = {
     "USA":"USA","United States":"USA","South Korea":"KOR","Korea Republic":"KOR",
     "Czech Republic":"CZE","Czechia":"CZE","Turkey":"TUR","Türkiye":"TUR","Turkiye":"TUR",
-    "Bosnia and Herzegovina":"BIH","Bosnia & Herzegovina":"BIH","Ivory Coast":"CIV","Cote d'Ivoire":"CIV",
+    "Bosnia and Herzegovina":"BIH","Bosnia & Herzegovina":"BIH","Bosnia-Herzegovina":"BIH",
+    "Ivory Coast":"CIV","Cote d'Ivoire":"CIV","Côte d'Ivoire":"CIV",
     "Cape Verde":"CPV","Cabo Verde":"CPV","DR Congo":"COD","Congo DR":"COD",
     "Curacao":"CUW","Curaçao":"CUW","Saudi Arabia":"KSA","New Zealand":"NZL",
   };
@@ -416,27 +420,43 @@
     const t2 = TEAMS.find(t => name.toLowerCase().includes(t.name.toLowerCase().split(" ")[0]));
     return t2 ? t2.code : null;
   }
+  // ESPN gives a 3-letter abbreviation that matches our codes; fall back to the name.
+  function resolveTeam(abbr, name) {
+    if (abbr && TEAM_BY_CODE[abbr]) return abbr;
+    return codeFromName(name);
+  }
   async function syncLive() {
-    const url = "https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=4429&s=2026";
+    const url = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719&limit=400";
     const res = await fetch(url);
     if (!res.ok) throw new Error("Feed returned " + res.status);
     const data = await res.json();
     const events = (data && data.events) || [];
-    let updated = 0;
+    let updated = 0, considered = 0;
     events.forEach(ev => {
-      if (ev.intHomeScore == null || ev.intAwayScore == null) return;
-      const hc = codeFromName(ev.strHomeTeam), ac = codeFromName(ev.strAwayTeam);
-      if (!hc || !ac) return;
+      const comp = ev.competitions && ev.competitions[0];
+      if (!comp) return;
+      const cs = comp.competitors || [];
+      const home = cs.find(x => x.homeAway === "home");
+      const away = cs.find(x => x.homeAway === "away");
+      if (!home || !away) return;
+      const done = ev.status && ev.status.type && ev.status.type.completed;
+      if (!done) return;                                   // only apply FINAL scores
+      considered++;
+      const hc = resolveTeam((home.team || {}).abbreviation, (home.team || {}).displayName);
+      const ac = resolveTeam((away.team || {}).abbreviation, (away.team || {}).displayName);
+      if (!hc || !ac) return;                              // unmatched (e.g. KO placeholders) → skip
       const fx = FIXTURES.find(f => (f.home === hc && f.away === ac) || (f.home === ac && f.away === hc));
-      if (!fx) return;
-      const h = fx.home === hc ? Number(ev.intHomeScore) : Number(ev.intAwayScore);
-      const a = fx.home === hc ? Number(ev.intAwayScore) : Number(ev.intHomeScore);
-      state.scores[fx.id] = { h, a };
-      updated++;
+      if (!fx) return;                                     // knockout slot fixtures won't match → skip
+      const h = fx.home === hc ? Number(home.score) : Number(away.score);
+      const a = fx.home === hc ? Number(away.score) : Number(home.score);
+      if (!Number.isFinite(h) || !Number.isFinite(a)) return;
+      const cur = state.scores[fx.id];
+      if (!cur || cur.h !== h || cur.a !== a) { state.scores[fx.id] = { h, a }; updated++; }  // only if changed
     });
     state.lastSync = new Date().toISOString();
-    save();
-    return { updated, total: events.length };
+    if (updated > 0 && HOST) save();                       // only the host writes, and only when something changed
+    else emit();                                           // otherwise just refresh the view
+    return { updated, total: considered };
   }
 
   window.Store = {

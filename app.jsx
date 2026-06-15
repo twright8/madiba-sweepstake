@@ -94,12 +94,27 @@ function App() {
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 
-/* ---- boot: Firebase drives live. Without it, fall back to a committed state.json. ---- */
+/* ---- boot: Firebase drives live state. Without it, fall back to a committed state.json. ---- */
 (async function boot() {
-  if (Store.isLive()) return;  // Firebase subscription handles everything
-  try {
-    const res = await fetch("state.json?" + Date.now(), { cache: "no-store" });
-    if (res.ok) Store.hydrate(await res.json());
-  } catch (e) { /* no seed file — that's fine */ }
-  if (!HOST) { try { await Store.syncLive(); } catch (e) {} }
+  if (!Store.isLive()) {
+    try {
+      const res = await fetch("state.json?" + Date.now(), { cache: "no-store" });
+      if (res.ok) Store.hydrate(await res.json());
+    } catch (e) { /* no seed file — that's fine */ }
+  }
+
+  // The HOST pulls live group scores from ESPN (on load + every few minutes while open) and
+  // writes them to the shared state, so everyone sees them. Viewers just read — they never sync.
+  // syncLive only ever touches `scores`, never the draw, and only writes when something changed.
+  if (HOST) {
+    const waitReady = () => new Promise(res => {
+      if (Store.isReady()) return res();
+      const t = setInterval(() => { if (Store.isReady()) { clearInterval(t); res(); } }, 300);
+      setTimeout(() => { clearInterval(t); res(); }, 8000);
+    });
+    const pull = async () => { try { await Store.syncLive(); } catch (e) { /* feed offline — manual entry still works */ } };
+    await waitReady();   // ensure shared state is loaded before merging scores onto it
+    await pull();
+    setInterval(pull, 4 * 60 * 1000);
+  }
 })();
