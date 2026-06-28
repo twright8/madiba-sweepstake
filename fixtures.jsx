@@ -36,6 +36,7 @@ function Calendar() {
   const [, force] = useState(0);
   const [mineOnly, setMineOnly] = useState(false);
   const [sync, setSync] = useState({ state: "idle", msg: "" });
+  const [showPast, setShowPast] = useState(false);
   const drawDone = Store.state.draw.done;
   const owners = Store.state.draw.owners || {};
 
@@ -61,6 +62,20 @@ function Calendar() {
     if (!map[k]) { map[k] = { key: k, iso: x.f.kickoff, items: [] }; days.push(map[k]); }
     map[k].items.push(x);
   });
+
+  // collapse past days (e.g. the finished group stage); show today onward by default
+  const todayKey = dayKey(new Date().toISOString());
+  const pastDays = days.filter(d => d.key < todayKey);
+  const currentDays = days.filter(d => d.key >= todayKey);
+  const renderDay = (day) => (
+    <div key={day.key} className="grid" style={{ gap: 8 }}>
+      <div className="row" style={{ gap: 10, marginTop: 4 }}>
+        <span className="tag-stage">{fmtDayLong(day.iso)}</span>
+        <span className="muted" style={{ fontSize: 12, fontWeight: 700 }}>{day.items.length} match{day.items.length > 1 ? "es" : ""}</span>
+      </div>
+      {day.items.map(x => <FixtureRow key={x.f.id} x={x} owners={owners} onChange={() => force(v => v + 1)} />)}
+    </div>
+  );
 
   return (
     <div className="wrap grid" style={{ gap: 14, paddingTop: 16 }}>
@@ -90,15 +105,16 @@ function Calendar() {
         </div>
       )}
 
-      {days.map(day => (
-        <div key={day.key} className="grid" style={{ gap: 8 }}>
-          <div className="row" style={{ gap: 10, marginTop: 4 }}>
-            <span className="tag-stage">{fmtDayLong(day.iso)}</span>
-            <span className="muted" style={{ fontSize: 12, fontWeight: 700 }}>{day.items.length} match{day.items.length > 1 ? "es" : ""}</span>
-          </div>
-          {day.items.map(x => <FixtureRow key={x.f.id} x={x} owners={owners} onChange={() => force(v => v + 1)} />)}
-        </div>
-      ))}
+      {pastDays.length > 0 && currentDays.length > 0 && (
+        <button className="btn ghost sm" onClick={() => setShowPast(s => !s)} style={{ alignSelf: "flex-start" }}>
+          {showPast ? "▾ Hide earlier matches" : `▸ Earlier matches — ${pastDays.length} days played`}
+        </button>
+      )}
+      {(showPast || currentDays.length === 0) && pastDays.map(renderDay)}
+      {currentDays.map(renderDay)}
+      {currentDays.length === 0 && pastDays.length > 0 && (
+        <p className="muted" style={{ textAlign: "center", fontSize: 13, marginTop: 4 }}>That's every match in the book. 🏆</p>
+      )}
     </div>
   );
 }
