@@ -430,8 +430,17 @@
     const res = await fetch(url);
     if (!res.ok) throw new Error("Feed returned " + res.status);
     const data = await res.json();
-    const events = (data && data.events) || [];
+    // earliest first, so a round's winners are set before the next round is matched in the same pass
+    const events = ((data && data.events) || []).slice()
+      .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+    const koFixtures = FIXTURES.filter(f => f.stage !== "group");
     let updated = 0, considered = 0;
+    function putScore(id, sc) {
+      const cur = state.scores[id];
+      if (!cur || cur.h !== sc.h || cur.a !== sc.a || cur.ph !== sc.ph || cur.pa !== sc.pa) { state.scores[id] = sc; updated++; }
+    }
+    function putKo(key, code) { if (code && state.koTeams[key] !== code) { state.koTeams[key] = code; updated++; } }
+
     events.forEach(ev => {
       const comp = ev.competitions && ev.competitions[0];
       if (!comp) return;
@@ -440,22 +449,36 @@
       const away = cs.find(x => x.homeAway === "away");
       if (!home || !away) return;
       const done = ev.status && ev.status.type && ev.status.type.completed;
-      if (!done) return;                                   // only apply FINAL scores
+      if (!done) return;                                   // only apply FINAL results
       considered++;
       const hc = resolveTeam((home.team || {}).abbreviation, (home.team || {}).displayName);
       const ac = resolveTeam((away.team || {}).abbreviation, (away.team || {}).displayName);
-      if (!hc || !ac) return;                              // unmatched (e.g. KO placeholders) → skip
-      const fx = FIXTURES.find(f => (f.home === hc && f.away === ac) || (f.home === ac && f.away === hc));
-      if (!fx) return;                                     // knockout slot fixtures won't match → skip
-      const h = fx.home === hc ? Number(home.score) : Number(away.score);
-      const a = fx.home === hc ? Number(away.score) : Number(home.score);
-      if (!Number.isFinite(h) || !Number.isFinite(a)) return;
-      const cur = state.scores[fx.id];
-      if (!cur || cur.h !== h || cur.a !== a) { state.scores[fx.id] = { h, a }; updated++; }  // only if changed
+      if (!hc || !ac) return;                              // unresolved (e.g. future-round placeholders) → skip
+      const hs = Number(home.score), as = Number(away.score);
+      if (!Number.isFinite(hs) || !Number.isFinite(as)) return;
+
+      // group game: fixtures store real team codes
+      const gfx = GROUP_FIXTURES.find(f => (f.home === hc && f.away === ac) || (f.home === ac && f.away === hc));
+      if (gfx) { putScore(gfx.id, gfx.home === hc ? { h: hs, a: as } : { h: as, a: hs }); return; }
+
+      // knockout game: match by the fixture's CURRENTLY resolved teams
+      const kfx = koFixtures.find(f => {
+        const ph = koParticipant(f, "home"), pa = koParticipant(f, "away");
+        return (ph === hc && pa === ac) || (ph === ac && pa === hc);
+      });
+      if (!kfx) return;
+      const homeMatch = koParticipant(kfx, "home") === hc;
+      const sc = homeMatch ? { h: hs, a: as } : { h: as, a: hs };
+      const hp = home.shootoutScore, ap = away.shootoutScore;      // penalty shootout, if any
+      if (hp != null && ap != null) { sc.ph = homeMatch ? hp : ap; sc.pa = homeMatch ? ap : hp; }
+      putScore(kfx.id, sc);
+      const winCode = home.winner ? hc : (away.winner ? ac : null);   // who advanced
+      if (winCode) { putKo("W" + kfx.num, winCode); putKo("L" + kfx.num, winCode === hc ? ac : hc); }
     });
+
     state.lastSync = new Date().toISOString();
     if (updated > 0 && HOST) save();                       // only the host writes, and only when something changed
-    else emit();                                           // otherwise just refresh the view
+    else emit();
     return { updated, total: considered };
   }
 

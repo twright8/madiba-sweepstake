@@ -143,8 +143,9 @@ function FixtureRow({ x, owners, onChange }) {
             <input className="scorebox" type="number" min="0" value={s ? s.a : ""} placeholder="–" onChange={e => setA(e.target.value)} />
           </div>
         ) : (
-          <div style={{ flex: "0 0 auto", textAlign: "center", fontFamily: "var(--display)", fontSize: 20, minWidth: 42 }}>
-            {s ? `${s.h}–${s.a}` : "v"}
+          <div style={{ flex: "0 0 auto", textAlign: "center", minWidth: 48 }}>
+            <div style={{ fontFamily: "var(--display)", fontSize: 20 }}>{s ? `${s.h}–${s.a}` : "v"}</div>
+            {s && s.ph != null && <div style={{ fontSize: 9, fontWeight: 800, color: "#7a7059" }}>{s.ph}–{s.pa} pens</div>}
           </div>
         )}
         <FxSide code={a} raw={sideSlot(f, "away")} owner={owners[a]} right />
