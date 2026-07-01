@@ -62,11 +62,14 @@ function Calendar() {
     if (!map[k]) { map[k] = { key: k, iso: x.f.kickoff, items: [] }; days.push(map[k]); }
     map[k].items.push(x);
   });
+  // keep the days in date order, and each day's matches in kick-off order
+  days.sort((a, b) => a.key.localeCompare(b.key));
+  days.forEach(d => d.items.sort((x, y) => new Date(x.f.kickoff) - new Date(y.f.kickoff)));
 
-  // collapse past days (e.g. the finished group stage); show today onward by default
-  const todayKey = dayKey(new Date().toISOString());
-  const pastDays = days.filter(d => d.key < todayKey);
-  const currentDays = days.filter(d => d.key >= todayKey);
+  // collapse days before YESTERDAY; keep yesterday, today and upcoming open by default
+  const yesterdayKey = dayKey(new Date(Date.now() - 24 * 3600 * 1000).toISOString());
+  const pastDays = days.filter(d => d.key < yesterdayKey);
+  const currentDays = days.filter(d => d.key >= yesterdayKey);
   const renderDay = (day) => (
     <div key={day.key} className="grid" style={{ gap: 8 }}>
       <div className="row" style={{ gap: 10, marginTop: 4 }}>
